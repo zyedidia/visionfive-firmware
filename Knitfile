@@ -1,0 +1,22 @@
+local uboot = b({
+    $ uboot:VB:
+        make starfive_jh7100_visionfive_smode_defconfig ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu-
+        make u-boot.bin u-boot.dtb ARCH=riscv CROSS_COMPILE=riscv64-unknown-linux-gnu-
+}, "u-boot")
+
+local opensbi = b({
+    $ opensbi:VB: ../u-boot/uboot
+        make ARCH=riscv CROSS_COMPILE=riscv64-unknown-elf- PLATFORM=generic FW_PAYLOAD_PATH=../u-boot/u-boot.bin FW_FDT_PATH=../u-boot/u-boot.dtb
+    $ fw_payload.bin: opensbi
+        cp build/platform/generic/firmware/fw_payload.bin $output
+}, "opensbi")
+
+return b{
+    $ fw_payload_out.bin: fw_payload.bin
+        ./fsz.sh $input $output
+    $ fw_payload.bin: opensbi/fw_payload.bin
+        cp $input $output
+
+    uboot,
+    opensbi
+}
